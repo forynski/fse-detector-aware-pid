@@ -20,11 +20,11 @@ Includes five complementary architectures: **SimpleNN**, **DNN**, **FSE + Attent
 
 ## Overview
 
-**FSE + Attention** is a machine learning framework for **particle identification (PID)** in ALICE Run 3 Pb-Pb collisions, designed to compare feature-based neural networks and tree-based models across several momentum regions, with and without DPG track selections. The main result is that the baseline **FSE + Attention** model already learns detector information implicitly: attention mechanisms are sufficient to capture detector-dependent behaviour without explicit conditioning, and explicit detector-aware modelling does not significantly outperform the baseline in this dataset.
+**FSE + Attention** is a machine learning framework for **particle identification (PID)** in ALICE Run 3 Pb-Pb collisions, designed to compare feature-based neural networks and tree-based models across several momentum regions, with and without DPG track selections. It is worth mentioning that the baseline **FSE + Attention** model already learns detector information implicitly: attention mechanisms are sufficient to capture detector-dependent behaviour without explicit conditioning, and explicit detector-aware modelling does not significantly outperform the baseline in this dataset.
 
-The framework compares three JAX/Flax neural network variants — **SimpleNN**, **DNN**, and **FSE + Attention** — against two tree-based baselines, **LightGBM** and **XGBoost**. The models are trained on simulated Run 3 Pb-Pb collision data with detector effects, then evaluated over the full spectrum and in three momentum slices: **0-1 GeV/c**, **0.7-1.5 GeV/c**, and **1-3 GeV/c**.
+The framework compares three JAX/Flax neural network variants — **SimpleNN**, **DNN**, and **FSE + Attention** — against two tree-based baselines, **LightGBM** and **XGBoost**. The models are trained on simulated Run 3 Pb-Pb collision data with detector effects, then evaluated over the **full spectrum** and in three momentum slices: **0-1 GeV/c**, **0.7-1.5 GeV/c**, and **1-3 GeV/c**.
 
-### Headline Finding: Tree-Based Models Lead, FSE + Attention Is Strong
+### Key Finding: Tree-Based Models Perform Slightly Better , FSE + Attention Outperforms Other Neural Networks
 
 **XGBoost** and **LightGBM** achieve the best test accuracy in most settings, while **FSE + Attention** remains the strongest neural-network approach. The attention model is consistently competitive, especially after DPG cuts, but the tree-based methods still lead by a small margin.
 
