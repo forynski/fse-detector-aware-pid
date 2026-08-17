@@ -201,7 +201,7 @@ The feature-extraction and inference stages have been merged into O²Physics as 
   per-detector-group enable/disable options (`useTPC`/`useTOF`/`useTRD`/`useITS`/`useEMCal`/
   `useHMPID`/`useCentrality`).
 
-Merged PR: **`<PR_URL — please provide>`**
+Merged, in the main O²Physics repository: [`Tools/PIDFeatureExtractor`](https://github.com/AliceO2Group/O2Physics/tree/master/Tools/PIDFeatureExtractor)
 
 ---
 
