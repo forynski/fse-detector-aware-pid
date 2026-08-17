@@ -14,8 +14,8 @@ This repository contains the training and benchmarking code accompanying the pro
 Run 3 and Run 4 Pb–Pb Collisions* (R. Forynski).
 
 > **Scope.** This repository provides the **training and benchmarking** notebook. The ONNX
-> inference task and configurable analysis wrapper for O²Physics are being integrated into the
-> ALICE analysis framework and are not included here yet.
+> inference task and configurable analysis wrapper have been **merged into O²Physics**
+> as `PidFeatureExtractor` and `PidOnnxInference` — see [O²Physics tasks](#o²physics-tasks) below.
 
 ---
 
@@ -65,6 +65,24 @@ dedicated topology information.)
 > **Note on the Bayesian baseline.** The Bayesian PID probabilities are **excluded from the
 > training features** and retained only as an independent comparison baseline, so the network
 > cannot simply reproduce the estimator it is benchmarked against.
+
+### Download the trained model
+
+The trained model (`full_DPG_JAX_FSE_Attention.pkl`) is available on the ALICE Grid file
+catalogue at:
+
+```
+/alice/cern.ch/user/r/rforynsk/ML/full_DPG_JAX_FSE_Attention.pkl
+```
+
+Browse it at [alimonitor.cern.ch/catalogue](https://alimonitor.cern.ch/catalogue/?path=%2Falice%2Fcern.ch%2Fuser%2Fr%2Frforynsk%2FML#/alice/cern.ch/user/r/rforynsk/ML)
+(requires a valid ALICE Grid certificate/token). To fetch it directly with the AliEn/JAliEn
+client:
+
+```bash
+alien-token-init <your-username>
+alien.py cp alien:/alice/cern.ch/user/r/rforynsk/ML/full_DPG_JAX_FSE_Attention.pkl file:./full_DPG_JAX_FSE_Attention.pkl
+```
 
 ---
 
@@ -164,13 +182,26 @@ this is a consistency check rather than a performance measurement.
 
 ---
 
-## Deployment (in preparation)
+## Deployment
 
-The trained model is exported to **ONNX** and is intended to run within O²Physics via ONNX Runtime
-(C++), retrieved from the ALICE CCDB and applied at scale on the GRID / Hyperloop analysis trains.
-Because the model accepts the full track population, it can be applied uniformly across an analysis
-rather than only to the subset with complete PID information. The O²Physics inference task and a
-configurable analysis wrapper are being integrated into the ALICE analysis framework.
+The trained model is exported to **ONNX** and runs within O²Physics via ONNX Runtime (C++),
+retrieved from the ALICE CCDB and applied at scale on the GRID / Hyperloop analysis trains.
+Because the model accepts the full track population, it can be applied uniformly across an
+analysis rather than only to the subset with complete PID information.
+
+### O²Physics tasks
+
+The feature-extraction and inference stages have been merged into O²Physics as two tasks:
+
+- **`PidFeatureExtractor`** — extracts the 34-feature / 7-group PID feature set from AO2D input
+  (MC and real data, via a runtime `PROCESS_SWITCH`), with optional DPG cuts, optional Bayesian
+  PID, and optional CSV export.
+- **`PidOnnxInference`** — loads the trained ONNX model (from CCDB or a local file, via
+  O²Physics's `Tools/ML/MlResponse` wrapper) and writes out `PidMlPredictions`, with
+  per-detector-group enable/disable options (`useTPC`/`useTOF`/`useTRD`/`useITS`/`useEMCal`/
+  `useHMPID`/`useCentrality`).
+
+Merged PR: **`<PR_URL — please provide>`**
 
 ---
 
