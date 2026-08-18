@@ -68,21 +68,27 @@ dedicated topology information.)
 
 ### Download the trained model
 
-The trained model (`full_DPG_JAX_FSE_Attention.pkl`) is available on the ALICE Grid file
-catalogue at:
+The trained model is exported to ONNX (`full_DPG_JAX_FSE_Attention.onnx`) and deployed on the
+ALICE Condition and Calibration Database (CCDB) at:
 
 ```
-/alice/cern.ch/user/r/rforynsk/ML/full_DPG_JAX_FSE_Attention.pkl
+Users/r/rforynsk/PidFeatureExtractor/model
 ```
 
-Browse it at [alimonitor.cern.ch/catalogue](https://alimonitor.cern.ch/catalogue/?path=%2Falice%2Fcern.ch%2Fuser%2Fr%2Frforynsk%2FML#/alice/cern.ch/user/r/rforynsk/ML)
-(requires a valid ALICE Grid certificate/token). To fetch it directly with the AliEn/JAliEn
-client:
+Browse it at [alice-ccdb.cern.ch/browse](http://alice-ccdb.cern.ch/browse/Users/r/rforynsk/PidFeatureExtractor/model),
+or fetch it directly:
 
-```bash
-alien-token-init <your-username>
-alien.py cp alien:/alice/cern.ch/user/r/rforynsk/ML/full_DPG_JAX_FSE_Attention.pkl file:./full_DPG_JAX_FSE_Attention.pkl
 ```
+http://alice-ccdb.cern.ch/download/25cf3fbb-9b1f-11f1-bf5f-56153f9e24ee
+```
+
+(This direct link points at the current object version; if the model is ever re-uploaded, use
+the CCDB path above via `CcdbApi`/`BasicCCDBManager` instead, so you always resolve the latest
+version rather than a pinned snapshot.)
+
+This is also the path `PidOnnxInference` reads via O²Physics's `Tools/ML/MlResponse` wrapper
+(`modelPathsCcdb` Configurable, with `loadModelFromCcdb=true`) — see
+[O²Physics tasks](#o²physics-tasks) below.
 
 ---
 
