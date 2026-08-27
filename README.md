@@ -94,7 +94,7 @@ This is also the path `PidOnnxInference` reads via O²Physics's `Tools/ML/MlResp
 
 ## Dataset
 
-- **Simulation:** ALICE Run 3 Pb–Pb Monte Carlo production **LHC25f6**, anchored to **run 544122**
+- **Simulation:** ALICE Run 3 Pb–Pb Monte Carlo production **LHC25f6**, anchored to **apass5** of **run 544122**
   of the 2023 Pb–Pb data-taking, √s_NN = 5.36 TeV. Labels from Monte Carlo truth (PDG codes).
 - **Real data:** same run (544122) of the **LHC23zzh** period, used for validation.
 - **Size:** full sample 3.08 × 10⁷ tracks; after the standard ALICE **DPG quality selections**
