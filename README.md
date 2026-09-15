@@ -45,7 +45,7 @@ dedicated topology information.)
 
 ## Model
 
-- **Input:** 34 features in **seven detector groups**
+- **Input:** 34 features in **seven detector groups**, plus 5 binary detector-availability flags
   - **TPC** (dE/dx, four nσ, cluster count, χ²)
   - **TOF** (β, mass, four nσ)
   - **TRD** (signal, χ², number of tracklets)
@@ -53,7 +53,11 @@ dedicated topology information.)
   - **EMCal** (η, φ extrapolated to the calorimeter surface)
   - **HMPID** (Cherenkov signal, MIP charge)
   - **Kinematics / event** (pT, η, φ, DCAxy, DCAz, centrality, vz)
-- **Availability mask:** a binary length-7 group mask encodes which detectors measured each track.
+  - **Detector availability flags** (`has_tpc`, `has_tof`, `has_trd`, `has_emcal`, `has_hmpid`) —
+    binary indicators passed alongside the group mask, excluded from feature standardisation
+- **Availability mask:** a binary length-7 group mask encodes which detectors measured each track,
+  used to gate per-group attention; the 5 availability flags above are a separate, redundant
+  encoding of the same information at the feature level.
 - **Architecture:** per-group linear projection to a `d = 128` embedding → masked multi-head
   self-attention (`h = 8`) → per-token layer-normalised, sigmoid-gated transform → masked mean
   pooling over present groups → MLP (128 → 64, ReLU, dropout 0.4) → softmax over 4 classes.
