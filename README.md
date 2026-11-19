@@ -9,9 +9,9 @@
 
 Machine-learning particle identification (PID) for ALICE Run 3 Pb–Pb collisions, based on a
 **detector-aware Feature-Set-Embedding (FSE) model with group-wise multi-head self-attention**.
-This repository contains the training and benchmarking code accompanying the proceedings paper
+This repository contains the training and benchmarking code accompanying the ICNFP 2026 proceedings paper
 *Detector-Aware Feature-Set-Embedding Attention Networks for Particle Identification in ALICE
-Run 3 and Run 4 Pb–Pb Collisions* (R. Forynski).
+Run 3 Pb–Pb Collisions* (R. Forynski, for the ALICE Collaboration).
 
 > **Scope.** This repository provides the **training and benchmarking** notebook. The ONNX
 > inference task and configurable analysis wrapper have been **merged into O²Physics**
@@ -34,8 +34,9 @@ This project trains a single neural network that:
   between detectors that are genuinely present,
 
 so that one set of weights realises a different effective classifier for every detector
-configuration — without training a separate model per configuration, and without imputing the
-signals of absent detectors.
+configuration — without training a separate model per configuration. (Absent-detector values are
+imputed with sentinels and accompanied by availability flags; the mask removes the absent groups
+from the attention.)
 
 The model classifies **pions, kaons, protons and electrons**. (Muons are not treated as a
 separate class, being nearly indistinguishable from pions in the central barrel without
@@ -45,14 +46,15 @@ dedicated topology information.)
 
 ## Model
 
-- **Input:** 34 features in **seven detector groups**, plus 5 binary detector-availability flags
+- **Input:** 34 inputs = 29 measured features in **seven detector groups**, plus 5 binary
+  detector-availability flags
   - **TPC** (dE/dx, four nσ, cluster count, χ²)
   - **TOF** (β, mass, four nσ)
-  - **TRD** (signal, χ², number of tracklets)
+  - **TRD** (signal, χ², number of tracklets) — *the TRD signal is a constant placeholder in the current production, see [Known limitations](#known-limitations-of-the-current-dataset)*
   - **ITS** (cluster count, χ²)
-  - **EMCal** (η, φ extrapolated to the calorimeter surface)
+  - **EMCal** (η, φ extrapolated to the calorimeter surface — position only, no cluster energy)
   - **HMPID** (Cherenkov signal, MIP charge)
-  - **Kinematics / event** (pT, η, φ, DCAxy, DCAz, centrality, vz)
+  - **Kinematics / event** (pT, η, φ, DCAxy, DCAz, centrality, vz) — *centrality is constant in the current production*
   - **Detector availability flags** (`has_tpc`, `has_tof`, `has_trd`, `has_emcal`, `has_hmpid`) —
     binary indicators passed alongside the group mask, excluded from feature standardisation
 - **Availability mask:** a binary length-7 group mask encodes which detectors measured each track,
@@ -63,12 +65,15 @@ dedicated topology information.)
   pooling over present groups → MLP (128 → 64, ReLU, dropout 0.4) → softmax over 4 classes.
 - **Loss:** focal loss (α = 0.25, γ = 2.0) to counter the strong pion dominance.
 - **Framework:** JAX/Flax, Adam (lr = 1e-4, gradient-norm clipping, batch size 256, early
-  stopping). Layer normalisation is used throughout in preference to batch normalisation, whose
-  statistics would be dominated by imputed zeros from absent sparse detectors.
+  stopping on the test set — so quoted performance may be marginally optimistic). Layer
+  normalisation is used throughout in preference to batch normalisation, whose statistics would be
+  dominated by imputed zeros from absent sparse detectors.
 
 > **Note on the Bayesian baseline.** The Bayesian PID probabilities are **excluded from the
 > training features** and retained only as an independent comparison baseline, so the network
-> cannot simply reproduce the estimator it is benchmarked against.
+> cannot simply reproduce the estimator it is benchmarked against. The baseline is a simplified
+> Gaussian-likelihood combination of the TPC and TOF nσ values with flat (or, in one comparison,
+> class-proportional) priors — it is **not** the full ALICE Bayesian PID.
 
 ### Download the trained model
 
@@ -99,11 +104,13 @@ This is also the path `PidOnnxInference` reads via O²Physics's `Tools/ML/MlResp
 ## Dataset
 
 - **Simulation:** ALICE Run 3 Pb–Pb Monte Carlo production **LHC25f6**, anchored to **apass5** of **run 544122**
-  of the 2023 Pb–Pb data-taking, √s_NN = 5.36 TeV. Labels from Monte Carlo truth (PDG codes).
-- **Real data:** same run (544122) of the **LHC23zzh** period, used for validation.
+  of the 2023 Pb–Pb data-taking, √s_NN = 5.36 TeV. Labels from Monte Carlo truth (PDG codes
+  mapped to pion, kaon, proton, electron).
+- **Real data:** same run (544122) of the **LHC23zzh** period, used for a consistency check
+  (no truth labels are available).
 - **Size:** full sample 3.08 × 10⁷ tracks; after the standard ALICE **DPG quality selections**
   (|vz| < 10 cm, |η| < 0.8, |DCAxy| < 0.105 cm, |DCAz| < 0.12 cm, ≥ 70 TPC clusters, ≥ 3 ITS
-  clusters) → 3.09 × 10⁶ tracks (train/test 2.47 × 10⁶ / 6.17 × 10⁵, stratified 80/20).
+  clusters) → 3.09 × 10⁶ tracks (train/test 2.47 × 10⁶ / 6.17 × 10⁵, stratified 80/20 at track level).
 - **Class imbalance (DPG):** pions 87.1 %, kaons 7.2 %, protons 4.0 %, electrons 1.7 %.
 
 Continuous features are standardised with per-feature scalers fitted on the training set only;
@@ -134,17 +141,18 @@ By momentum (FSE accuracy / macro AUC): 0.1–1 GeV/c → 0.974 / 0.993; 0.7–1
 
 The network improves the per-species F1 over the flat-prior Bayesian baseline for all four
 species, with especially large purity gains for the rarer species (e.g. electron purity
-0.03 → 0.83).
+0.03 → 0.83). On this strongly pion-dominated sample, part of the gap to the flat-prior baseline
+reflects the network implicitly learning the species abundances.
 
 **Resilience to detector configuration (accuracy):**
 
 | Classifier | TPC-only | TPC + TOF |
 |---|---|---|
 | FSE + attention | 0.941 | 0.977 |
-| Bayesian | 0.326 | 0.587 |
+| Bayesian (flat priors) | 0.326 | 0.587 |
 
-The detector-aware model already classifies TPC-only tracks at 0.94 accuracy, where the Bayesian
-estimator collapses to 0.33 — reliable PID across the whole track population, not only the
+The detector-aware model already classifies TPC-only tracks at 0.94 accuracy, where the flat-prior
+Bayesian estimator collapses to 0.33 — reliable PID across the whole track population, not only the
 minority with complete information.
 
 ---
@@ -153,7 +161,7 @@ minority with complete information.
 
 On identical tracks and splits, the detector-aware model is benchmarked against a deep
 feed-forward network (DNN) on the imputed feature vector and the XGBoost / LightGBM
-gradient-boosted trees (full spectrum, DPG):
+gradient-boosted trees (full spectrum, DPG), all receiving the same 34 inputs:
 
 | Model | Accuracy | Macro AUC | Macro F1 |
 |---|---|---|---|
@@ -162,24 +170,44 @@ gradient-boosted trees (full spectrum, DPG):
 | XGBoost | 0.953 | 0.987 | 0.824 |
 | FSE + attention | 0.952 | 0.986 | 0.817 |
 
-**All models far exceed the Bayesian baseline and are mutually comparable, with differences of
-order 10⁻³ — within run-to-run training variation.** The distinction of the detector-aware model
-is **architectural rather than a difference in raw accuracy**: the tree and feed-forward models
-require a fixed-length input and therefore depend on **imputing** the signals of absent
-detectors, and would in general need separate models per detector configuration. The
-detector-aware network instead conditions directly on the per-track detector mask, so a **single
-model** covers every configuration — including the incomplete-information tracks that dominate the
-sample — and is deployed as a single ONNX model. The FSE model also tends to favour purity over
-efficiency and is particularly competitive on the harder electron channel.
+**All models far exceed the Bayesian baseline and are mutually comparable** (differences of at
+most 10⁻³ in accuracy and macro AUC and up to 7 × 10⁻³ in macro F1). Each model was trained once
+(single seed), so no run-to-run uncertainty is available and the differences should not be read as
+a ranking. The distinction of the detector-aware model is **architectural rather than a difference
+in raw accuracy**: the tree and feed-forward models require a fixed-length input and therefore
+depend on imputing the signals of absent detectors (here supplemented by the availability flags),
+or on separate models per detector configuration. The detector-aware network instead conditions
+directly on the per-track detector mask, so a **single model** covers every configuration —
+including the incomplete-information tracks that dominate the sample — and is deployed as a
+single ONNX model.
 
-## Impact of the additional detectors
+---
 
-Extending the input from a TPC+TOF baseline to the full detector set (adding TRD, EMCal and HMPID)
-leaves the overall accuracy almost unchanged (pions, which dominate the sample, are already well
-identified) but improves the **macro-averaged F1 by ≈ 0.03 for every model** — the gain
-concentrates in the harder channels: kaons and protons by ≈ 0.02 and **electrons by up to ≈ 0.12**
-(electron F1 0.59 → 0.68 on the full spectrum), growing towards higher momentum where the TPC/TOF
-separation degrades.
+## Known limitations of the current dataset
+
+These apply to the LHC25f6 feature production used for the released model and the paper:
+
+- **`trd_signal` is a constant placeholder** (−1 for every track with TRD information). The TRD
+  group therefore contributes only its χ² and number of tracklets, and no transition-radiation
+  information.
+- **`centrality_ft0c` is constant** in the training sample (100 after clipping to [0, 100]).
+- The **EMCal group contains only the extrapolated track position** (no cluster energy), and
+  HMPID covers only 0.35 % of the selected tracks.
+- Consequently, **the benefit of the TRD, EMCal and HMPID input groups over the TPC and TOF inputs
+  has not been established.** An internal controlled check on the same data, split and seed — a
+  reduced model with the TRD, ITS, EMCal and HMPID inputs, masks and flags zeroed — gave the same
+  FSE performance as the full model (accuracy 0.952, macro F1 0.817 in both cases); this
+  comparison is not part of the released notebook or the paper.
+- Both constant inputs are kept in the input vector so that the input contract is unchanged. A
+  model trained on a production in which they are populated would need retraining and
+  validation; do not assume the released model responds meaningfully to these two inputs.
+- Species labels come from Monte Carlo truth, so any simulation-versus-data mismatch affects the
+  learned boundaries; probability calibration and the interpretability of the attention weights
+  have not been separately quantified.
+
+Planned: repopulate the TRD signal and the centrality in the feature production, repeat the study
+on larger samples, and validate on real data with samples identified without reference to Monte Carlo
+truth (e.g. V0 decay daughters and photon conversions).
 
 ---
 
@@ -187,8 +215,9 @@ separation degrades.
 
 Applied to real Run 3 Pb–Pb data (LHC23zzh, run 544122), the model's predictions populate the
 expected PID bands — the TPC dE/dx ordering π < K < p and the TOF velocity ordering π > K > p —
-confirming that the network behaves consistently on real data. As real data carry no truth labels,
-this is a consistency check rather than a performance measurement.
+confirming that the network behaves consistently on real data. Since dE/dx and β are themselves
+model inputs and real data carry no truth labels, this is a consistency check rather than a
+performance measurement or an independent demonstration of generalisation from simulation.
 
 ---
 
