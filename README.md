@@ -158,10 +158,24 @@ reflects the network implicitly learning the species abundances.
 |---|---|---|
 | FSE + attention | 0.941 | 0.977 |
 | Simplified Bayesian baseline (flat priors) | 0.326 | 0.587 |
+| Simplified Bayesian baseline (class-proportional priors) | not computed | 0.808 |
 
 The detector-aware model already classifies TPC-only tracks at 0.94 accuracy, where the simplified
-Bayesian baseline collapses to 0.33 — reliable PID across the whole track population, not only the
-minority with complete information.
+Bayesian baseline with flat priors collapses to 0.33 — reliable PID across the whole track
+population, not only the minority with complete information.
+
+**On the priors.** On this strongly pion-dominated sample, always predicting a pion already gives
+0.876 (TPC-only) and 0.860 (TPC + TOF) accuracy, so a flat prior is a deliberately weak choice and
+part of the gap to the network reflects the network implicitly learning the species abundances.
+A more comparable baseline uses priors approximately proportional to the species abundance
+(π : K : p : e = 1.00 : 0.20 : 0.10 : 0.05, not fitted exactly to this sample). It was evaluated
+**only on tracks with both TPC and TOF** (not on TPC-only tracks, the full spectrum or per
+species): accuracy 0.808 on the DPG TPC + TOF subset (flat priors: 0.587) and 0.679 without the DPG
+selection (flat priors: 0.548), and 0.850 / 0.716 / 0.655 for 0.1–1 / 0.7–1.5 / 1–3 GeV/c on the
+DPG subset. This is a clear improvement over flat priors, but it remains below the always-pion
+accuracy on the same subset (0.860) and below the FSE model (0.977). The comparison is therefore
+most informative in terms of per-species purity and stability across detector configurations, not
+overall accuracy alone.
 
 ---
 
